@@ -21,11 +21,11 @@ import time
 import numpy as np
 
 # === Configuration ===
-PORT = 'COM22'
+PORT = '/dev/ttyACM0'
 BAUD = 115200
 COUNTS_PER_INCH = 4115
 TOTAL_COUNTS = 16460
-Ts = 0.005
+Ts = 0.002
 DURATION = 20.0
 
 # === Sliding Mode Parameters ===
