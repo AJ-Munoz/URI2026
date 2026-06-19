@@ -47,6 +47,12 @@ PWM_MIN      = 60        # overcome stiction
 PWM_MAX      = 200
 RUNAWAY_CNT  = 400      # if we move this far the WRONG way -> abort (bad polarity)
 
+# === Homing (PLATE MUST BE DISCONNECTED) ===
+SEEK_PWM = 180          # retract toward the full-retract hard stop
+POS_PWM  = 150          # extend to the 2" home pose
+STALL_S  = 1.5          # counts unchanged this long under power = stalled
+HOME_EXTEND_CNT = int(2.0 * COUNTS_PER_INCH)   # +2" from full retract
+
 # software offset so reported = ENC_SIGN*raw + offset  [counts]
 offset = [0, 0]
 
@@ -184,6 +190,75 @@ def polarity_test(ser, ax, pulse_pwm=110, pulse_s=0.25):
               f"({'counts up' if dlt>0 else 'counts down'})")
     print("    -> EXTEND should give +counts. If reversed, flip EXTEND_DIR or ENC_SIGN.")
 
+def home_sequence(ser):
+    """Retract BOTH legs to their stops -> zero -> extend +2" -> zero.
+    Defines a repeatable home (2" extended = 0.0 in). PLATE OFF only."""
+    ans = input("  TOP PLATE DISCONNECTED? Homing drives BOTH legs to their "
+                "stops. [y/N]: ").strip().lower()
+    if ans != 'y':
+        print("  Homing aborted (reconnect-safe).")
+        return
+
+    # --- retract both to hard stops, per-leg stall detection ---
+    print("  Retracting both legs to full-retract stops...", flush=True)
+    dxr, dyr = 1 - EXTEND_DIR[0], 1 - EXTEND_DIR[1]
+    last = [None, None]
+    stall_t = [time.time(), time.time()]
+    stalled = [False, False]
+    while not all(stalled):
+        pxr = 0 if stalled[0] else SEEK_PWM
+        pyr = 0 if stalled[1] else SEEK_PWM
+        ser.write(bytes([9, dxr, pxr, dyr, pyr]))
+        parts = ser.readline().decode('utf-8', 'ignore').strip().split()
+        if len(parts) != 2:
+            continue
+        try:
+            pos = [ENC_SIGN[0]*int(parts[0]), ENC_SIGN[1]*int(parts[1])]
+        except ValueError:
+            continue
+        for i in (0, 1):
+            if stalled[i]:
+                continue
+            if last[i] is not None and abs(pos[i] - last[i]) <= 2:
+                if time.time() - stall_t[i] > STALL_S:
+                    stalled[i] = True
+                    print(f"    leg {i+1} stalled at stop.")
+            else:
+                stall_t[i] = time.time()
+            last[i] = pos[i]
+        time.sleep(0.05)
+    stop(ser)
+    time.sleep(0.1)
+
+    # --- zero at retract datum, then extend both +2" ---
+    ser.write(bytes([6])); time.sleep(0.2)
+    offset[0] = offset[1] = 0
+    print(f"  Retract datum = 0. Extending +2\" ({HOME_EXTEND_CNT} cnt)...", flush=True)
+    while True:
+        enc = positions(ser)
+        if enc is None:
+            continue
+        d1 = HOME_EXTEND_CNT - enc[0]
+        d2 = HOME_EXTEND_CNT - enc[1]
+        if abs(d1) < 60 and abs(d2) < 60:
+            break
+        dx = EXTEND_DIR[0] if d1 >= 0 else (1 - EXTEND_DIR[0])
+        dy = EXTEND_DIR[1] if d2 >= 0 else (1 - EXTEND_DIR[1])
+        p1 = 0 if abs(d1) < 60 else POS_PWM
+        p2 = 0 if abs(d2) < 60 else POS_PWM
+        ser.write(bytes([9, dx, p1, dy, p2]))
+        ser.readline()
+        time.sleep(0.01)
+    stop(ser)
+    time.sleep(0.2)
+
+    # --- zero here -> this is HOME (0.0 in) ---
+    ser.write(bytes([6])); time.sleep(0.2)
+    offset[0] = offset[1] = 0
+    print("  HOME established at 2\" (0.0 in). New zero set.")
+    print("  >>> RECONNECT THE TOP PLATE before running experiments.")
+    show(ser)
+
 # =====================================================================
 def main():
     ser = connect()
@@ -196,6 +271,7 @@ def main():
 
     HELP = (
         "  p            print positions\n"
+        "  home         FULL HOMING: retract both to stops, +2\", set new zero (PLATE OFF)\n"
         "  z            zero both here (define home = 0.0 in)\n"
         "  a <ax> <in>  ASSUME axis is currently at <in> inches\n"
         "  <ax> <in>    GO axis (1|2) to <in> inches\n"
@@ -225,6 +301,8 @@ def main():
                 ser.write(bytes([6])); time.sleep(0.2)
                 offset[0] = offset[1] = 0
                 print("  zeroed both. Home set here (0.0 in)."); show(ser)
+            elif c in ('home', 'hm'):
+                home_sequence(ser)
             elif c == 'r':
                 stop(ser); ser.write(bytes([8])); time.sleep(0.3)
                 print("  Teensy reset (encoders -> 0). Re-declare positions if needed.")
