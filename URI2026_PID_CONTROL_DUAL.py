@@ -260,6 +260,92 @@ def safe_abort(ser, reason):
     time.sleep(0.2)
 
 # =====================================================================
+# Homing  (PLATE MUST BE DISCONNECTED — drives both legs to their stops)
+# =====================================================================
+SEEK_PWM = 180   # retract toward the full-retract hard stop
+POS_PWM  = 150   # extend to the 2" home pose
+STALL_S  = 1.5   # counts unchanged this long under power = stalled
+HOME_EXTEND_CNT = int(STROKE_IN * COUNTS_PER_INCH)   # +2" from full retract
+
+def _retract_to_stops(ser):
+    """Retract BOTH legs to their hard stops. Per-leg stall detection;
+    each leg cuts power independently the instant it stalls."""
+    dxr = 1 - EXTEND_DIR_X      # retract direction (opposite of extend)
+    dyr = 1 - EXTEND_DIR_Y
+    last = [None, None]
+    stall_t = [time.time(), time.time()]
+    stalled = [False, False]
+    while not all(stalled):
+        pxr = 0 if stalled[0] else SEEK_PWM
+        pyr = 0 if stalled[1] else SEEK_PWM
+        ser.write(bytes([9, dxr, pxr, dyr, pyr]))
+        parts = ser.readline().decode('utf-8', 'ignore').strip().split()
+        if len(parts) != 2:
+            continue
+        try:
+            pos = [ENC_SIGN_X * int(parts[0]), ENC_SIGN_Y * int(parts[1])]
+        except ValueError:
+            continue
+        for i in (0, 1):
+            if stalled[i]:
+                continue
+            if last[i] is not None and abs(pos[i] - last[i]) <= 2:
+                if time.time() - stall_t[i] > STALL_S:
+                    stalled[i] = True
+            else:
+                stall_t[i] = time.time()
+            last[i] = pos[i]
+        time.sleep(0.05)
+    stop(ser)
+    time.sleep(0.1)
+
+def _extend_both_to(ser, target_cnt, tol=60):
+    """Extend both legs together to +target_cnt from the current zero."""
+    while True:
+        enc = read_encoders(ser)
+        if enc is None:
+            continue
+        d1 = target_cnt - enc[0]
+        d2 = target_cnt - enc[1]
+        if abs(d1) < tol and abs(d2) < tol:
+            break
+        dx = EXTEND_DIR_X if d1 >= 0 else (1 - EXTEND_DIR_X)
+        dy = EXTEND_DIR_Y if d2 >= 0 else (1 - EXTEND_DIR_Y)
+        p1 = 0 if abs(d1) < tol else POS_PWM
+        p2 = 0 if abs(d2) < tol else POS_PWM
+        ser.write(bytes([9, dx, p1, dy, p2]))
+        ser.readline()
+        time.sleep(0.01)
+    stop(ser)
+    time.sleep(0.2)
+
+def home_routine(ser):
+    """Establish home = 2" extended = eta 0, as a repeatable datum.
+    Retract to stops -> zero -> extend +2" -> zero. Plate OFF only."""
+    print("\n--- HOMING ---")
+    ans = input("  Is the TOP PLATE DISCONNECTED? Homing drives BOTH legs "
+                "to their stops. [y/N]: ").strip().lower()
+    if ans != 'y':
+        # safe fallback: hand-level-and-zero (no stop-seeking)
+        print("  Stop-seek skipped. Set the plate LEVEL at the 2\" pose by hand,")
+        input("  then press Enter to zero the encoders here (home / eta=0)... ")
+        ser.write(bytes([6]))
+        time.sleep(0.2)
+        print(f"  Home set by hand. Encoders: {read_encoders(ser)}")
+        return
+
+    print("  Retracting both legs to full-retract stops...", flush=True)
+    _retract_to_stops(ser)
+    ser.write(bytes([6]))           # datum: full retract = 0
+    time.sleep(0.2)
+    print(f"  At retract datum. Extending +2\" ({HOME_EXTEND_CNT} cnt)...", flush=True)
+    _extend_both_to(ser, HOME_EXTEND_CNT)
+    ser.write(bytes([6]))           # zero here -> home, eta = 0
+    time.sleep(0.2)
+    print(f"  HOME established at 2\" (eta=0). Encoders: {read_encoders(ser)}")
+    input("  >>> RECONNECT THE TOP PLATE, then press Enter to continue... ")
+
+# =====================================================================
 # Connect
 # =====================================================================
 try:
@@ -335,13 +421,7 @@ def reference_lambda(t):
 mode_names = {1: "Regulation", 2: "Circle", 3: "FigureEight"}
 ctrl_names = {1: "PID", 2: "SlidingMode", 3: "SuperTwisting", 4: "UnitVectorSMC"}
 
-print("\n--- HOME SETUP ---")
-print("Set the plate LEVEL at the 2\" home position by hand, then")
-input("press Enter to zero the encoders here (this defines home / eta=0)... ")
-ser.write(bytes([6]))   # zero both encoders
-time.sleep(0.2)
-enc = read_encoders(ser)
-print(f"  Home set. Encoders: {enc}")
+home_routine(ser)
 time.sleep(0.3)
 
 # =====================================================================
