@@ -84,6 +84,22 @@ ALPHA_SM  = 5.0
 ST_K1 = 2.5
 ST_K2 = 2.0
 
+# Paper unit-vector SMC (Eq. 29-35): coupled law on integral surface
+#   s = e_dot + 2*alpha*e + alpha^2*Integral(e)   [s0 offset so s(0)=0]
+#   u = g_q - K * s / (||s|| + eps)               [||s|| is the 2-vector norm]
+# alpha (= ALPHA_SM = 5.0 /s) carries over from the paper directly.
+# K and EPS are in NORMALIZED units here (u in [-1,1], e in counts),
+# NOT the paper's Newtons/meters -> tune at the bench.
+UV_K    = 0.30        # feedback gain (normalized) <-- BENCH TUNE
+UV_EPS  = 50.0        # boundary layer [counts]    <-- BENCH TUNE
+
+# Gravity feedforward. The PA-HD2 leadscrew is NON-BACKDRIVABLE: it holds
+# position at zero command, so static gravity FF is largely inert on this
+# hardware (unlike the force-actuator sim). Default OFF; flip on only to
+# TEST whether the paper's FF-sensitivity result appears on the bench.
+USE_GRAVITY_FF = False
+UV_GFF = 0.0          # normalized feedforward magnitude if enabled
+
 # Levant differentiator gain (per channel)
 Ld = 1.0e4
 
@@ -266,14 +282,16 @@ if not GEOMETRY_MEASURED:
 # User setup
 # =====================================================================
 print("\nExperiment mode:")
-print("  1 - Regulation (step the thrust vector to a fixed tilt)")
-print("  2 - Tracking   (figure-eight)")
+print("  1 - Regulation   (step the thrust vector to a fixed tilt)")
+print("  2 - Circle       (constant-tilt cone, traced at steady rate)")
+print("  3 - Figure-eight (paper, Eq. 40)")
 mode = int(input("Selection: "))
 
 print("\nController (applied per actuator):")
 print("  1 - PID")
 print("  2 - Sliding Mode (tanh)")
 print("  3 - Super Twisting")
+print("  4 - Unit-vector SMC (paper, coupled, integral surface)")
 ctr_sel = int(input("Selection: "))
 
 if mode == 1:
@@ -298,7 +316,13 @@ def reference_lambda(t):
         if t < step_time:
             return np.array([0.0, 0.0, 1.0])     # level until the step
         return lam_tgt
-    else:
+    elif mode == 2:                              # circle: constant tilt W0
+        return np.array([
+            np.sin(W0) * np.cos(W1 * t),
+            np.sin(W0) * np.sin(W1 * t),
+            np.cos(W0),
+        ])
+    else:                                        # figure-eight (paper Eq. 40)
         return np.array([
             np.sin(W0) * np.cos(W1 * t),
             np.sin(W0) * np.sin(2.0 * W1 * t),
@@ -308,8 +332,8 @@ def reference_lambda(t):
 # =====================================================================
 # Startup: home / zero
 # =====================================================================
-mode_names = {1: "Regulation", 2: "Tracking"}
-ctrl_names = {1: "PID", 2: "SlidingMode", 3: "SuperTwisting"}
+mode_names = {1: "Regulation", 2: "Circle", 3: "FigureEight"}
+ctrl_names = {1: "PID", 2: "SlidingMode", 3: "SuperTwisting", 4: "UnitVectorSMC"}
 
 print("\n--- HOME SETUP ---")
 print("Set the plate LEVEL at the 2\" home position by hand, then")
@@ -328,6 +352,8 @@ z2  = np.zeros(2)
 Iz  = np.zeros(2)
 Isq = np.zeros(2)
 Aw  = np.zeros(2)
+s0  = np.zeros(2)       # surface offset so s(0)=0 (unit-vector SMC)
+s0_set = False
 eta_est = np.zeros(2)   # warm-start for inverse kinematics
 
 ISE = np.zeros(2)
@@ -342,6 +368,8 @@ f.write(f"# Mode: {mode_names[mode]}\n")
 f.write(f"# Controller: {ctrl_names[ctr_sel]}\n")
 if mode == 1:
     f.write(f"# Step: tilt {tilt_deg} deg, azimuth {azi_deg} deg at t={step_time}s\n")
+elif mode == 2:
+    f.write(f"# Circle: tilt {np.rad2deg(W0):.1f} deg, W1={W1} rad/s\n")
 else:
     f.write(f"# Figure-eight: W0={np.rad2deg(W0)} deg, W1={W1} rad/s\n")
 f.write(f"# Geometry[in]: H1={H1} H2={H2} R={R} ELL={ELL} measured={GEOMETRY_MEASURED}\n")
@@ -418,13 +446,22 @@ try:
         if ctr_sel == 1:                                   # PID
             u = -Kp * z1 - Kd * z2 - Ki * Iz + Aw
             Aw += Kaw * (np.clip(u, -1.0, 1.0) - u) * dt
-        elif ctr_sel == 2:                                 # Sliding mode
+        elif ctr_sel == 2:                                 # Sliding mode (tanh, SISO)
             s = z2 + ALPHA_SM * z1
             u = -K_SM * np.tanh(LAMBDA_SM * s) / 255.0
-        else:                                              # Super twisting
+        elif ctr_sel == 3:                                 # Super twisting
             s = z2 + ALPHA_SM * z1
             Isq += dt * np.sign(s)
             u = -(ST_K1 * np.sqrt(np.abs(s)) * np.sign(s) + ST_K2 * Isq) / 255.0
+        else:                                              # Unit-vector SMC (paper, coupled)
+            # integral surface: s = e_dot + 2a e + a^2 * Int(e)  (z1~e, z2~e_dot, Iz~Int e)
+            s = z2 + 2.0 * ALPHA_SM * z1 + ALPHA_SM**2 * Iz
+            if not s0_set:                                 # offset so s(0)=0
+                s0 = s.copy()
+                s0_set = True
+            s = s - s0
+            gff = (UV_GFF * np.ones(2)) if USE_GRAVITY_FF else 0.0
+            u = gff - UV_K * s / (np.linalg.norm(s) + UV_EPS)   # COUPLED: shared ||s||
 
         u_sat = np.clip(u, -1.0, 1.0)
 
