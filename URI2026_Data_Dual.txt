@@ -1,0 +1,7 @@
+# URI 2026 Dual Actuator TVC Experiment
+# Mode: Regulation
+# Controller: PID
+# Step: tilt 10.0 deg, azimuth 0.0 deg at t=2.0s
+# Geometry[in]: H1=12.0 H2=6.0 R=5.0 ELL=0.6 measured=False
+# TiltLimit: 45.0 deg   Ts: 0.002s   Duration: 20.0s
+# t	e1	e2	x1	x2	xd1	xd2	u1	u2	phi	theta	tilt	dt
