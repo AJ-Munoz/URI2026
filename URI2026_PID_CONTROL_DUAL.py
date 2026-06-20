@@ -435,6 +435,8 @@ Aw  = np.zeros(2)
 s0  = np.zeros(2)       # surface offset so s(0)=0 (unit-vector SMC)
 s0_set = False
 eta_est = np.zeros(2)   # warm-start for inverse kinematics
+u_sat = np.zeros(2)     # control output, defined before first use
+first_tick = True       # first loop iteration only reads (no u yet)
 
 ISE = np.zeros(2)
 ISC = np.zeros(2)
@@ -491,8 +493,9 @@ try:
 
         # --- atomic command + feedback ---
         # (first tick we have no u yet -> send zero, just read)
-        if t == 0.0:
+        if first_tick:
             enc = read_encoders(ser)
+            first_tick = False
         else:
             enc = drive_dual(ser, u_sat[0], u_sat[1])
         if enc is None:
