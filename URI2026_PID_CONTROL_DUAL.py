@@ -36,7 +36,7 @@ PORT = '/dev/ttyACM0'
 BAUD = 115200
 COUNTS_PER_INCH = 4115
 Ts = 0.002
-DURATION = 20.0
+DURATION = 60.0
 
 STROKE_IN   = 2.0                          # +/- travel about home [in]
 STROKE_CNT  = STROKE_IN * COUNTS_PER_INCH  # +/- travel about home [counts]
@@ -70,7 +70,7 @@ ENC_SIGN_Y   = +1
 # Controller gains  (per actuator; same structure as the single-actuator rig)
 # =====================================================================
 # PID
-Kp  = 0.025
+Kp  = 0.02
 Ki  = 1e-3
 Kd  = 1e-4
 Kaw = 0.5 * Ki
@@ -106,8 +106,8 @@ Ld = 1.0e4
 # =====================================================================
 # Reference trajectory parameters
 # =====================================================================
-W0 = np.deg2rad(30.0)   # tilt amplitude (cone half-angle of the figure-eight)
-W1 = 0.5                # rad/s (slow)
+W0 = np.deg2rad(15.0)   # tilt amplitude (cone half-angle of the figure-eight)
+W1 = 0.2                # rad/s (slow)
 
 # =====================================================================
 # Geometry helpers (forward kinematics)
