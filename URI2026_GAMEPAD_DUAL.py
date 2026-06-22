@@ -53,8 +53,8 @@ HOLD_A_S     = 1.0         # hold A this long to trigger homing
 SLOWZONE_CNT = int(0.25 * COUNTS_PER_INCH)  # taper PWM near the stroke limit
 
 # Xbox axis indices (SDL): 0=LX 1=LY 2=RX 3=RY (common); adjust if needed
-AX_LY = 3
-AX_RY = 2
+AX_LY = 4
+AX_RY = 3
 BTN_A = 0
 BTN_B = 1
 
@@ -223,6 +223,7 @@ def main():
             # --- sticks -> pwm ---
             pwmX, extX = axis_to_pwm(js.get_axis(AX_LY))
             pwmY, extY = axis_to_pwm(js.get_axis(AX_RY))
+            pwmX = -pwmX
 
             # --- drive + read, with per-frame stroke clamp ---
             # first read to clamp against current position
