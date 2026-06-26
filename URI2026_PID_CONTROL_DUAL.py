@@ -35,8 +35,8 @@ import numpy as np
 PORT = '/dev/ttyACM0'
 BAUD = 115200
 COUNTS_PER_INCH = 4115
-Ts = 0.002
-DURATION = 60.0
+Ts = 0.001
+DURATION = 20
 
 STROKE_IN   = 2.0                          # +/- travel about home [in]
 STROKE_CNT  = STROKE_IN * COUNTS_PER_INCH  # +/- travel about home [counts]
@@ -70,7 +70,7 @@ ENC_SIGN_Y   = +1
 # Controller gains  (per actuator; same structure as the single-actuator rig)
 # =====================================================================
 # PID
-Kp  = 0.02
+Kp  = 0.025
 Ki  = 1e-3
 Kd  = 1e-4
 Kaw = 0.5 * Ki
@@ -78,11 +78,11 @@ Kaw = 0.5 * Ki
 # Sliding Mode (tanh)
 K_SM      = 220.0
 LAMBDA_SM = 0.001
-ALPHA_SM  = 5.0
+ALPHA_SM  = 2.0
 
 # Super Twisting
-ST_K1 = 2.5
-ST_K2 = 2.0
+ST_K1 = 7.0
+ST_K2 = 5.0
 
 # Paper unit-vector SMC (Eq. 29-35): coupled law on integral surface
 #   s = e_dot + 2*alpha*e + alpha^2*Integral(e)   [s0 offset so s(0)=0]
@@ -90,8 +90,8 @@ ST_K2 = 2.0
 # alpha (= ALPHA_SM = 5.0 /s) carries over from the paper directly.
 # K and EPS are in NORMALIZED units here (u in [-1,1], e in counts),
 # NOT the paper's Newtons/meters -> tune at the bench.
-UV_K    = 0.30        # feedback gain (normalized) <-- BENCH TUNE
-UV_EPS  = 50.0        # boundary layer [counts]    <-- BENCH TUNE
+UV_K    = 3.0        # feedback gain (normalized) <-- BENCH TUNE
+UV_EPS  = 1.0        # boundary layer [counts]    <-- BENCH TUNE
 
 # Gravity feedforward. The PA-HD2 leadscrew is NON-BACKDRIVABLE: it holds
 # position at zero command, so static gravity FF is largely inert on this
@@ -107,7 +107,7 @@ Ld = 1.0e4
 # Reference trajectory parameters
 # =====================================================================
 W0 = np.deg2rad(15.0)   # tilt amplitude (cone half-angle of the figure-eight)
-W1 = 0.2                # rad/s (slow)
+W1 = 0.2               # rad/s (slow)
 
 # =====================================================================
 # Geometry helpers (forward kinematics)
@@ -538,13 +538,12 @@ try:
             u = -(ST_K1 * np.sqrt(np.abs(s)) * np.sign(s) + ST_K2 * Isq) / 255.0
         else:                                              # Unit-vector SMC (paper, coupled)
             # integral surface: s = e_dot + 2a e + a^2 * Int(e)  (z1~e, z2~e_dot, Iz~Int e)
-            s = z2 + 2.0 * ALPHA_SM * z1 + ALPHA_SM**2 * Iz
+            s = z2 + 2.0 * ALPHA_SM * z1 + 0.1 * Iz
             if not s0_set:                                 # offset so s(0)=0
                 s0 = s.copy()
                 s0_set = True
             s = s - s0
-            gff = (UV_GFF * np.ones(2)) if USE_GRAVITY_FF else 0.0
-            u = gff - UV_K * s / (np.linalg.norm(s) + UV_EPS)   # COUPLED: shared ||s||
+            u = - UV_K * s / (np.linalg.norm(s) + UV_EPS)   # COUPLED: shared ||s||
 
         u_sat = np.clip(u, -1.0, 1.0)
 
