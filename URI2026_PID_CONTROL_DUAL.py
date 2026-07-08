@@ -78,7 +78,7 @@ Kaw = 1.0 * Ki
 # Sliding Mode (tanh)
 K_SM      = 220.0
 LAMBDA_SM = 0.001
-ALPHA_SM  = 2.0
+ALPHA_SM  = 100.0
 
 # Super Twisting
 ST_K1 = 7.0
@@ -90,8 +90,8 @@ ST_K2 = 5.0
 # alpha (= ALPHA_SM = 5.0 /s) carries over from the paper directly.
 # K and EPS are in NORMALIZED units here (u in [-1,1], e in counts),
 # NOT the paper's Newtons/meters -> tune at the bench.
-UV_K    = 3.0        # feedback gain (normalized) <-- BENCH TUNE
-UV_EPS  = 1.0        # boundary layer [counts]    <-- BENCH TUNE
+UV_K    = 1.0        # feedback gain (normalized) <-- BENCH TUNE
+UV_EPS  = 400.0        # boundary layer [counts]    <-- BENCH TUNE
 
 # Gravity feedforward. The PA-HD2 leadscrew is NON-BACKDRIVABLE: it holds
 # position at zero command, so static gravity FF is largely inert on this
@@ -538,7 +538,7 @@ try:
             u = -(ST_K1 * np.sqrt(np.abs(s)) * np.sign(s) + ST_K2 * Isq) / 255.0
         else:                                              # Unit-vector SMC (paper, coupled)
             # integral surface: s = e_dot + 2a e + a^2 * Int(e)  (z1~e, z2~e_dot, Iz~Int e)
-            s = z2 + 2.0 * ALPHA_SM * z1 + 0.1 * Iz
+            s = z2 + ALPHA_SM * z1 + 0.0 * Iz
             if not s0_set:                                 # offset so s(0)=0
                 s0 = s.copy()
                 s0_set = True
