@@ -72,8 +72,8 @@ ENC_SIGN_Y   = +1
 # =====================================================================
 # PID
 Kp  = 0.03
-Ki  = 1e-3
-Kd  = 1e-4
+Ki  = 2e-3
+Kd  = 2e-4
 Kaw = 1.0 * Ki
 
 # Sliding Mode (tanh)
@@ -517,8 +517,8 @@ try:
             aborted = True
             break
 
-        # --- error + per-channel Levant differentiator ---
-        e = x - xd
+        # --- error + Levant differentiator ---
+        e = (x - xd) * (np.tanh(1*t)**2)
         ez = e - z1
         dz1 = 1.5 * np.sqrt(Ld) * np.sqrt(np.abs(ez) + 1e-6) * np.sign(ez) + z2
         dz2 = 1.1 * Ld * np.sign(ez)
@@ -540,10 +540,6 @@ try:
         else:                                              # Unit-vector SMC (paper, coupled)
             # integral surface: s = e_dot + 2a e + a^2 * Int(e)  (z1~e, z2~e_dot, Iz~Int e)
             s = z2 + ALPHA_SM * z1 + 0.0 * Iz
-            if not s0_set:                                 # offset so s(0)=0
-                s0 = s.copy()
-                s0_set = True
-            s = s - s0
             u = - UV_K * s / (np.linalg.norm(s) + UV_EPS)   # COUPLED: shared ||s||
 
         u_sat = np.clip(u, -1.0, 1.0)
