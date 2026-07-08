@@ -541,9 +541,9 @@ try:
             # integral surface: s = e_dot + 2a e + a^2 * Int(e)  (z1~e, z2~e_dot, Iz~Int e)
             ALPHA_UV_PD = 100
             sPD = z2 + ALPHA_UV_PD * z1
-            ALPHA_UV_PID = 10
-            sPID = z2 + 10 * ALPHA_UV_PID * z1 + 0.01*(ALPHA_UV_PID**2) * Iz
-            u = - UV_K * sPID / (np.linalg.norm(sPID) + UV_EPS)   # COUPLED: shared ||s||
+            #ALPHA_UV_PID = 10
+            #sPID = z2 + 10 * ALPHA_UV_PID * z1 + 0.01*(ALPHA_UV_PID**2) * Iz
+            u = - UV_K * sPD / (np.linalg.norm(sPD) + UV_EPS)   # COUPLED: shared ||s||
 
         u_sat = np.clip(u, -1.0, 1.0)
 
