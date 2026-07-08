@@ -28,6 +28,7 @@
 import serial
 import time
 import numpy as np
+import subprocess
 
 # =====================================================================
 # Configuration
@@ -91,7 +92,7 @@ ST_K2 = 5.0
 # K and EPS are in NORMALIZED units here (u in [-1,1], e in counts),
 # NOT the paper's Newtons/meters -> tune at the bench.
 UV_K    = 1.0        # feedback gain (normalized) <-- BENCH TUNE
-UV_EPS  = 400.0        # boundary layer [counts]    <-- BENCH TUNE
+UV_EPS  = 300.0        # boundary layer [counts]    <-- BENCH TUNE
 
 # Gravity feedforward. The PA-HD2 leadscrew is NON-BACKDRIVABLE: it holds
 # position at zero command, so static gravity FF is largely inert on this
@@ -578,3 +579,5 @@ finally:
     print("Data saved to URI2026_Data_Dual.txt")
     print("Run URI2026_PLOT_DUAL.py for plots.")
     print("=^..^=")
+    subprocess.run(["python3","URI2026_PLOT_DUAL.py"])
+
