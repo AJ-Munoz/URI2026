@@ -35,8 +35,8 @@ import numpy as np
 PORT = '/dev/ttyACM0'
 BAUD = 115200
 COUNTS_PER_INCH = 4115
-Ts = 0.001
-DURATION = 20
+Ts = 0.002
+DURATION = 60
 
 STROKE_IN   = 2.0                          # +/- travel about home [in]
 STROKE_CNT  = STROKE_IN * COUNTS_PER_INCH  # +/- travel about home [counts]
@@ -48,11 +48,11 @@ TILT_LIMIT_DEG = 45.0                      # safety line, total tilt about z
 # Until they are measured, the STROKE trip (geometry-free) is the
 # authoritative safety; the tilt trip uses these placeholders.
 # ---------------------------------------------------------------------
-H1  = 12.0     # base plane -> U-joint center   [in]  <-- MEASURE
-H2  = 6.0      # U-joint -> top-plate pin plane  [in]  <-- MEASURE
-R   = 5.0      # pin-circle radius (both plates) [in]  <-- MEASURE (~5)
+H1  = 13.28     # base plane -> U-joint center   [in]  <-- MEASURE
+H2  = 9.51      # U-joint -> top-plate pin plane  [in]  <-- MEASURE
+R   = 6.2      # pin-circle radius (both plates) [in]  <-- MEASURE (~5)
 ELL = 0.6      # actuator rest length [in] (cancels in control; only logging)
-GEOMETRY_MEASURED = False   # set True once H1,H2,R are real -> trust tilt trip
+GEOMETRY_MEASURED = True   # set True once H1,H2,R are real -> trust tilt trip
 
 # ---------------------------------------------------------------------
 # POLARITY  ***  SET AFTER A BENCH TEST  ***
@@ -70,10 +70,10 @@ ENC_SIGN_Y   = +1
 # Controller gains  (per actuator; same structure as the single-actuator rig)
 # =====================================================================
 # PID
-Kp  = 0.025
+Kp  = 0.03
 Ki  = 1e-3
 Kd  = 1e-4
-Kaw = 0.5 * Ki
+Kaw = 1.0 * Ki
 
 # Sliding Mode (tanh)
 K_SM      = 220.0
@@ -106,7 +106,7 @@ Ld = 1.0e4
 # =====================================================================
 # Reference trajectory parameters
 # =====================================================================
-W0 = np.deg2rad(15.0)   # tilt amplitude (cone half-angle of the figure-eight)
+W0 = np.deg2rad(10.0)   # tilt amplitude (cone half-angle of the figure-eight)
 W1 = 0.2               # rad/s (slow)
 
 # =====================================================================
