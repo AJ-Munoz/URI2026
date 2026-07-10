@@ -353,14 +353,17 @@ step_time = 2.0
 # Reference generator
 # =====================================================================
 def reference_lambda(t):
-	n0 = 2
-	n1 = 2/1.6180339887
-	W0 = 0.17 * np.sin(n0*np.pi*t/30.0)
-	W1 = n1 * np.pi/30.0
+	theta_rate = np.pi / 20 #tune
+	w0_max = 0.25 #safety cap to keep it real wit ya
+	tau = DURATION
+	theta = theta_rate * t
+	phase = (t%tau)/tau
+	envolope = 1 - abs(1-2*phase)
+	w0 = w0_max * envolope
 	return np.array([
-		W0 * np.cos(W1 * t),
-		W0 * np.sin(W1 * t),
-		np.sqrt(1 - W0 ** 2),
+		w0 * np.cos(theta),
+		w0 * np.sin(theta),
+		np.sqrt(1 - w0 ** 2),
 	])
 
 # =====================================================================

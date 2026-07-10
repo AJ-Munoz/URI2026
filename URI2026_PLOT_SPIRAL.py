@@ -154,5 +154,31 @@ plt.tight_layout(h_pad=0.5)
 plt.savefig('URI2026_Spiral.png')
 print("Saved: URI2026_Spiral.png")
 
+# ====== Figure 5: Plot Lambda =====
+phi_rad = np.radians(phi)
+tht_rad = np.radians(th)
+
+lam1 = np.cos(phi_rad) * np.sin(tht_rad)
+lam2 = -np.sin(phi_rad)
+lam3 = np.cos(phi_rad) * np.cos(tht_rad)
+
+fig5 = plt.figure()
+p5 = fig5.add_subplot(111, projection='3d')
+
+p5.plot(lam1, lam2, lam3, color=C_Q1, label='Lambda Path')
+
+p5.set_title('3D Lambda Plot', fontweight='bold')
+p5.set_xlabel('Lam 1')
+p5.set_ylabel('Lam 2')
+p5.set_zlabel('Lam 3')
+
+p5.set_xlim([-1, 1])
+p5.set_ylim([-1, 1])
+p5.set_zlim([-1, 1])
+p5.set_box_aspect((1, 1, 1))
+
+plt.tight_layout(h_pad=0.5)
+plt.savefig('URI2026_Lambda_3D.png')
+print("Saved: URI2026_Lambda_3D.png")
+
 plt.show()
-print("\nDone. =^..^=")
