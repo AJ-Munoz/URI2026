@@ -76,10 +76,12 @@ Ki  = 2e-3
 Kd  = 2e-4
 Kaw = 1.0 * Ki
 
-# Sliding Mode (tanh)
-K_SM      = 220.0
-LAMBDA_SM = 0.001
-ALPHA_SM  = 100.0
+# PIDNet
+Kd_PN     = 1e-4
+ALPHA_PN  = 30.0
+BETA_PN   = np.zeros(5)
+PHI_PN    = np.zeros((5,2))
+GAMMA_PN  = 0.0
 
 # Super Twisting
 ST_K1 = 7.0
@@ -93,6 +95,7 @@ ST_K2 = 5.0
 # NOT the paper's Newtons/meters -> tune at the bench.
 UV_K    = 1.0        # feedback gain (normalized) <-- BENCH TUNE
 UV_EPS  = 200.0        # boundary layer [counts]    <-- BENCH TUNE
+ALPHA_SM = 100.0
 
 # Gravity feedforward. The PA-HD2 leadscrew is NON-BACKDRIVABLE: it holds
 # position at zero command, so static gravity FF is largely inert on this
@@ -376,7 +379,7 @@ mode = int(input("Selection: "))
 
 print("\nController (applied per actuator):")
 print("  1 - PID")
-print("  2 - Sliding Mode (tanh)")
+print("  2 - PIDNet")
 print("  3 - Super Twisting")
 print("  4 - Unit-vector SMC (paper, coupled, integral surface)")
 ctr_sel = int(input("Selection: "))
@@ -530,9 +533,32 @@ try:
         if ctr_sel == 1:                                   # PID
             u = -Kp * z1 - Kd * z2 - Ki * Iz + Aw
             Aw += Kaw * (np.clip(u, -1.0, 1.0) - u) * dt
-        elif ctr_sel == 2:                                 # Sliding mode (tanh, SISO)
-            s = z2 + ALPHA_SM * z1
-            u = -K_SM * np.tanh(LAMBDA_SM * s) / 255.0
+        elif ctr_sel == 2:                                 # PIDNet
+            s = z2 + ALPHA_PN*z1
+            xi1 = np.array([z1[0],z2[0]])
+            xi2 = np.array([z1[1],z2[1]])
+            sigma = 0.5 * 4115
+            center1 = np.array([ 0.5, 0.1]) * 4115
+            center2 = np.array([-0.5, 0.1]) * 4115
+            center3 = np.array([-0.5,-0.1]) * 4115
+            center4 = np.array([ 0.5,-0.1]) * 4115
+            phi11 = np.exp(-np.linalg.norm(xi1 - center1)**2 / (2*sigma**2))
+            phi21 = np.exp(-np.linalg.norm(xi1 - center2)**2 / (2*sigma**2))
+            phi31 = np.exp(-np.linalg.norm(xi1 - center3)**2 / (2*sigma**2))  
+            phi41 = np.exp(-np.linalg.norm(xi1 - center4)**2 / (2*sigma**2))  
+            phi12 = np.exp(-np.linalg.norm(xi2 - center1)**2 / (2*sigma**2))  
+            phi22 = np.exp(-np.linalg.norm(xi2 - center2)**2 / (2*sigma**2))  
+            phi32 = np.exp(-np.linalg.norm(xi2 - center3)**2 / (2*sigma**2))  
+            phi42 = np.exp(-np.linalg.norm(xi2 - center4)**2 / (2*sigma**2))  
+            PHI_PN = np.array([
+				[1    , 1],
+				[phi11, phi12],
+				[phi21, phi22],
+				[phi31, phi32],
+				[phi41, phi42]
+            ])
+            BETA_PN += dt * GAMMA_PN * PHI_PN @ s
+            u = -Kd_PN*s - PHI_PN.T @ BETA_PN
         elif ctr_sel == 3:                                 # Super twisting
             s = z2 + ALPHA_SM * z1
             Isq += dt * np.sign(s)

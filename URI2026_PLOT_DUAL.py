@@ -73,9 +73,11 @@ dt  = d[:, 12]
 Ts  = np.median(dt)
 
 # Metrics
-ISE = np.trapz(np.sum(e**2, axis=1), t)
-ISC = np.trapz(np.sum(u**2, axis=1), t)
-print(f"\nISE = {ISE:.5f} in^2 s   ISC = {ISC:.3f}   peak tilt = {tilt.max():.1f} deg")
+ISE  = np.trapz(np.sum(e**2, axis=1), t)
+norm_err = np.dot(np.linalg.norm(e, axis=1),t)
+ITNE = np.trapz(norm_err, t)
+ISC  = np.trapz(np.sum(u**2, axis=1), t)
+print(f"\nISE = {ISE:.5f} in^2 s   ISC = {ISC:.5f}   INTE = {ITNE:.5f} in*s  peak tilt = {tilt.max():.1f} deg")
 
 # === Figure 1: actuator tracking + error + control ===
 fig, ax = plt.subplots(3, 1, figsize=(8, 7), sharex=True,
