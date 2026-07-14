@@ -78,10 +78,17 @@ Kaw = 1.0 * Ki
 
 # PIDNet
 Kd_PN     = 1e-4
-ALPHA_PN  = 30.0
+ALPHA_PN  = 10.0
 BETA_PN   = np.zeros(5)
 PHI_PN    = np.zeros((5,2))
-GAMMA_PN  = 0.0
+
+gamma_0   = 0.01
+GAMMA_PN  = 3e-5 # 3
+sigma = 0.15 * 4115
+center1 = np.array([ 0.1, 0.1]) * 4115
+center2 = np.array([-0.1, 0.1]) * 4115
+center3 = np.array([-0.1,-0.1]) * 4115
+center4 = np.array([ 0.1,-0.1]) * 4115
 
 # Super Twisting
 ST_K1 = 7.0
@@ -521,7 +528,7 @@ try:
             break
 
         # --- error + Levant differentiator ---
-        e = (x - xd) * (np.tanh(1*t)**2)
+        e = (x - xd) * (np.tanh(.5*t)**2) # 1*t
         ez = e - z1
         dz1 = 1.5 * np.sqrt(Ld) * np.sqrt(np.abs(ez) + 1e-6) * np.sign(ez) + z2
         dz2 = 1.1 * Ld * np.sign(ez)
@@ -534,14 +541,13 @@ try:
             u = -Kp * z1 - Kd * z2 - Ki * Iz + Aw
             Aw += Kaw * (np.clip(u, -1.0, 1.0) - u) * dt
         elif ctr_sel == 2:                                 # PIDNet
-            s = z2 + ALPHA_PN*z1
+            s   = z2 + ALPHA_PN*z1
+            sc  = 0.5 * ALPHA_PN*4115
+            sv1 = 0 if np.linalg.norm(s[0]) >= sc else 1
+            sv2 = 0 if np.linalg.norm(s[1]) >= sc else 1
+            sv  = np.diag(np.array([sv1, sv2]))
             xi1 = np.array([z1[0],z2[0]])
             xi2 = np.array([z1[1],z2[1]])
-            sigma = 0.5 * 4115
-            center1 = np.array([ 0.5, 0.1]) * 4115
-            center2 = np.array([-0.5, 0.1]) * 4115
-            center3 = np.array([-0.5,-0.1]) * 4115
-            center4 = np.array([ 0.5,-0.1]) * 4115
             phi11 = np.exp(-np.linalg.norm(xi1 - center1)**2 / (2*sigma**2))
             phi21 = np.exp(-np.linalg.norm(xi1 - center2)**2 / (2*sigma**2))
             phi31 = np.exp(-np.linalg.norm(xi1 - center3)**2 / (2*sigma**2))  
@@ -556,8 +562,8 @@ try:
 				[phi21, phi22],
 				[phi31, phi32],
 				[phi41, phi42]
-            ])
-            BETA_PN += dt * GAMMA_PN * PHI_PN @ s
+            ]) @ sv
+            BETA_PN += dt * GAMMA_PN * PHI_PN @ s - gamma_0*GAMMA_PN*BETA_PN
             u = -Kd_PN*s - PHI_PN.T @ BETA_PN
         elif ctr_sel == 3:                                 # Super twisting
             s = z2 + ALPHA_SM * z1
