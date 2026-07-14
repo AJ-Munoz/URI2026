@@ -71,28 +71,30 @@ ENC_SIGN_Y   = +1
 # Controller gains  (per actuator; same structure as the single-actuator rig)
 # =====================================================================
 # PID
-Kp  = 0.03
-Ki  = 2e-3
-Kd  = 2e-4
-Kaw = 1.0 * Ki
+Kp  = 1e-3
+Ki  = 1e-4
+Kd  = 1e-4
+Kaw = 0.5 * Ki
 
 # PIDNet
 Kd_PN     = 1e-4
 ALPHA_PN  = 10.0
-BETA_PN   = np.zeros(5)
-PHI_PN    = np.zeros((5,2))
-
+BETA_PN   = np.zeros(6)
+PHI_PN    = np.zeros((6,2))
 gamma_0   = 0.01
-GAMMA_PN  = 3e-5 # 3
+GAMMA_PN  = (2.5e-5) * np.array([0.01, 0.35, 1.0, 0.5, 1.0, 0.5])
 sigma = 0.15 * 4115
+center0 = np.array([ 0.0, 0.0]) * 4115
 center1 = np.array([ 0.1, 0.1]) * 4115
 center2 = np.array([-0.1, 0.1]) * 4115
 center3 = np.array([-0.1,-0.1]) * 4115
 center4 = np.array([ 0.1,-0.1]) * 4115
+sc  = 0.4 * ALPHA_PN * 4115
+
 
 # Super Twisting
-ST_K1 = 7.0
-ST_K2 = 5.0
+ST_K1 = 0.027
+ST_K2 = 0.019
 
 # Paper unit-vector SMC (Eq. 29-35): coupled law on integral surface
 #   s = e_dot + 2*alpha*e + alpha^2*Integral(e)   [s0 offset so s(0)=0]
@@ -542,33 +544,35 @@ try:
             Aw += Kaw * (np.clip(u, -1.0, 1.0) - u) * dt
         elif ctr_sel == 2:                                 # PIDNet
             s   = z2 + ALPHA_PN*z1
-            sc  = 0.5 * ALPHA_PN*4115
             sv1 = 0 if np.linalg.norm(s[0]) >= sc else 1
             sv2 = 0 if np.linalg.norm(s[1]) >= sc else 1
             sv  = np.diag(np.array([sv1, sv2]))
             xi1 = np.array([z1[0],z2[0]])
             xi2 = np.array([z1[1],z2[1]])
+            phi01 = np.exp(-np.linalg.norm(xi1 - center0)**2 / (2*sigma**2))
             phi11 = np.exp(-np.linalg.norm(xi1 - center1)**2 / (2*sigma**2))
             phi21 = np.exp(-np.linalg.norm(xi1 - center2)**2 / (2*sigma**2))
             phi31 = np.exp(-np.linalg.norm(xi1 - center3)**2 / (2*sigma**2))  
             phi41 = np.exp(-np.linalg.norm(xi1 - center4)**2 / (2*sigma**2))  
+            phi02 = np.exp(-np.linalg.norm(xi2 - center1)**2 / (2*sigma**2))  
             phi12 = np.exp(-np.linalg.norm(xi2 - center1)**2 / (2*sigma**2))  
             phi22 = np.exp(-np.linalg.norm(xi2 - center2)**2 / (2*sigma**2))  
             phi32 = np.exp(-np.linalg.norm(xi2 - center3)**2 / (2*sigma**2))  
             phi42 = np.exp(-np.linalg.norm(xi2 - center4)**2 / (2*sigma**2))  
             PHI_PN = np.array([
 				[1    , 1],
+				[phi01, phi02],
 				[phi11, phi12],
 				[phi21, phi22],
 				[phi31, phi32],
 				[phi41, phi42]
             ]) @ sv
-            BETA_PN += dt * GAMMA_PN * PHI_PN @ s - gamma_0*GAMMA_PN*BETA_PN
+            BETA_PN += dt * GAMMA_PN * ( PHI_PN @ s ) - gamma_0 * GAMMA_PN * BETA_PN
             u = -Kd_PN*s - PHI_PN.T @ BETA_PN
         elif ctr_sel == 3:                                 # Super twisting
             s = z2 + ALPHA_SM * z1
             Isq += dt * np.sign(s)
-            u = -(ST_K1 * np.sqrt(np.abs(s)) * np.sign(s) + ST_K2 * Isq) / 255.0
+            u = -ST_K1 * np.sqrt(np.abs(s)) * np.sign(s) - ST_K2 * Isq
         else:                                              # Unit-vector SMC (paper, coupled)
             # integral surface: s = e_dot + 2a e + a^2 * Int(e)  (z1~e, z2~e_dot, Iz~Int e)
             ALPHA_UV_PD = 100
