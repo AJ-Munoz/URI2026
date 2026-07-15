@@ -71,30 +71,33 @@ ENC_SIGN_Y   = +1
 # Controller gains  (per actuator; same structure as the single-actuator rig)
 # =====================================================================
 # PID
-Kp  = 1e-3
-Ki  = 1e-4
-Kd  = 1e-4
+Kp  = 5e-3
+Ki  = 2e-4
+Kd  = 2e-4
 Kaw = 0.5 * Ki
 
 # PIDNet
-Kd_PN     = 1e-4
+Kd_PN     = 0.9
 ALPHA_PN  = 10.0
+vartheta = 1/700
 BETA_PN   = np.zeros(6)
 PHI_PN    = np.zeros((6,2))
-gamma_0   = 0.01
-GAMMA_PN  = (2.5e-5) * np.array([0.01, 0.35, 1.0, 0.5, 1.0, 0.5])
-sigma = 0.15 * 4115
+gamma_0   = 0.4
+GAMMA_PN  = np.array([0.05, 1.0, 0.2, 0.07, 0.2, 0.07])
+sigma = 0.2 * 4115 # Larger value gives troubles
 center0 = np.array([ 0.0, 0.0]) * 4115
-center1 = np.array([ 0.1, 0.1]) * 4115
-center2 = np.array([-0.1, 0.1]) * 4115
-center3 = np.array([-0.1,-0.1]) * 4115
-center4 = np.array([ 0.1,-0.1]) * 4115
-sc  = 0.4 * ALPHA_PN * 4115
+center1 = np.array([ 0.2, 0.2]) * 4115
+center2 = np.array([-0.2, 0.2]) * 4115
+center3 = np.array([-0.2,-0.2]) * 4115
+center4 = np.array([ 0.2,-0.2]) * 4115
+sc  = 0.5 * ALPHA_PN * 4115 # Below this value there is a kick in the actuators
 
 
 # Super Twisting
-ST_K1 = 0.027
-ST_K2 = 0.019
+ST_K1 = 2e-2
+ST_K2 = 1.5e-2
+ALPHA_ST = 10.0
+
 
 # Paper unit-vector SMC (Eq. 29-35): coupled law on integral surface
 #   s = e_dot + 2*alpha*e + alpha^2*Integral(e)   [s0 offset so s(0)=0]
@@ -432,7 +435,7 @@ def reference_lambda(t):
 # Startup: home / zero
 # =====================================================================
 mode_names = {1: "Regulation", 2: "Circle", 3: "FigureEight"}
-ctrl_names = {1: "PID", 2: "SlidingMode", 3: "SuperTwisting", 4: "UnitVectorSMC"}
+ctrl_names = {1: "PID", 2: "RBF-PIDNet", 3: "SuperTwisting", 4: "UnitVectorSMC"}
 
 home_routine(ser)
 time.sleep(0.3)
@@ -567,10 +570,12 @@ try:
 				[phi31, phi32],
 				[phi41, phi42]
             ]) @ sv
-            BETA_PN += dt * GAMMA_PN * ( PHI_PN @ s ) - gamma_0 * GAMMA_PN * BETA_PN
-            u = -Kd_PN*s - PHI_PN.T @ BETA_PN
+            adap_fnc = np.tanh(vartheta * s)
+            BETA_PN += dt * GAMMA_PN * ( PHI_PN @ adap_fnc) \
+            - gamma_0 * GAMMA_PN * BETA_PN
+            u = - Kd_PN * adap_fnc - 0*PHI_PN.T @ BETA_PN
         elif ctr_sel == 3:                                 # Super twisting
-            s = z2 + ALPHA_SM * z1
+            s = z2 + ALPHA_ST * z1
             Isq += dt * np.sign(s)
             u = -ST_K1 * np.sqrt(np.abs(s)) * np.sign(s) - ST_K2 * Isq
         else:                                              # Unit-vector SMC (paper, coupled)
