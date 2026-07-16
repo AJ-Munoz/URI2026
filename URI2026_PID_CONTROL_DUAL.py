@@ -573,7 +573,7 @@ try:
             adap_fnc = np.tanh(vartheta * s)
             BETA_PN += dt * GAMMA_PN * ( PHI_PN @ adap_fnc) \
             - gamma_0 * GAMMA_PN * BETA_PN
-            u = - Kd_PN * adap_fnc - 0*PHI_PN.T @ BETA_PN
+            u = - Kd_PN * adap_fnc - PHI_PN.T @ BETA_PN
         elif ctr_sel == 3:                                 # Super twisting
             s = z2 + ALPHA_ST * z1
             Isq += dt * np.sign(s)
