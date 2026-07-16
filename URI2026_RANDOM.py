@@ -102,8 +102,8 @@ ALPHA_ST = 10.0
 # Random
 # rand_theta = (np.random.rand(3)-(0.5*np.ones(3)))*20 * np.pi / 180 
 # rand_phi   = (np.random.rand(3)-(0.5*np.ones(3)))*20 * np.pi / 180 
-rand_theta = np.array([5.0, 0.0, -5.0]) * np.pi / 180
-rand_phi   = np.array([0.0, 5.0, -5.0]) * np.pi / 180
+rand_theta = np.pi / 180.0 * np.array([5.0, 1.0, -5.0]) 
+rand_phi   = np.pi / 180.0 * np.array([1.0, 5.0, -5.0])
 
 print(rand_theta * 180/np.pi)
 print(rand_phi * 180/np.pi)
@@ -446,10 +446,10 @@ def reference_lambda(t):
 
 def SLERP(t):
     
-    if t < DURATION/3:
+    if t < 10/3:
         phi_0, phi_1 = 0, rand_phi[0]
         theta_0, theta_1 = 0, rand_theta[0]
-    elif t < 2*DURATION/3:
+    elif t < 2*10/3:
         phi_0, phi_1 = rand_phi[0], rand_phi[1]
         theta_0, theta_1 = rand_theta[0], rand_theta[1]
     else:
@@ -473,6 +473,7 @@ def SLERP(t):
     yt = np.clip(yt, y_0, y_1) if y_0 < y_1 else np.clip(yt, y_1, y_0)
     zt = np.clip(zt, z_0, z_1) if z_0 < z_1 else np.clip(zt, z_1, z_0)
 
+    return np.array([xt, yt, zt])
 # =====================================================================
 # Startup: home / zero
 # =====================================================================
