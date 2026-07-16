@@ -557,7 +557,7 @@ try:
             phi21 = np.exp(-np.linalg.norm(xi1 - center2)**2 / (2*sigma**2))
             phi31 = np.exp(-np.linalg.norm(xi1 - center3)**2 / (2*sigma**2))  
             phi41 = np.exp(-np.linalg.norm(xi1 - center4)**2 / (2*sigma**2))  
-            phi02 = np.exp(-np.linalg.norm(xi2 - center1)**2 / (2*sigma**2))  
+            phi02 = np.exp(-np.linalg.norm(xi2 - center0)**2 / (2*sigma**2))  
             phi12 = np.exp(-np.linalg.norm(xi2 - center1)**2 / (2*sigma**2))  
             phi22 = np.exp(-np.linalg.norm(xi2 - center2)**2 / (2*sigma**2))  
             phi32 = np.exp(-np.linalg.norm(xi2 - center3)**2 / (2*sigma**2))  
