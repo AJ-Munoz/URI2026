@@ -468,13 +468,13 @@ def SLERP(t):
     zt = (np.sin((1-t)*omega))/(np.sin(omega)) * z_0 + (np.sin(t*omega))/(np.sin(omega)) * z_1
     
     if x_0 < x_1:
-        np.clip(xt, x_0, x_1)
+        xt = np.clip(xt, x_0, x_1)
     else:
-        np.clip(xt, x_1, x_0)
+        xt = np.clip(xt, x_1, x_0)
     if y_0 < y_1:
-        np.clip(yt, y_0, y_1)
+        yt = np.clip(yt, y_0, y_1)
     else:
-        np.clip(yt, y_1, y_0)
+        yt = np.clip(yt, y_1, y_0)
     if z_0 < z_1:
         np.clip(zt, z_0, z_1)
     else:
