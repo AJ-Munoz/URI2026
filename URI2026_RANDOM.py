@@ -106,6 +106,7 @@ rand_phi   = (np.random.rand(3)-(0.5*np.ones(3)))*20 * np.pi / 180
 print(rand_theta * 180/np.pi)
 print(rand_phi * 180/np.pi)
 
+
 # Paper unit-vector SMC (Eq. 29-35): coupled law on integral surface
 #   s = e_dot + 2*alpha*e + alpha^2*Integral(e)   [s0 offset so s(0)=0]
 #   u = g_q - K * s / (||s|| + eps)               [||s|| is the 2-vector norm]
@@ -465,7 +466,20 @@ def SLERP(t):
     xt = (np.sin((1-t)*omega))/(np.sin(omega)) * x_0 + (np.sin(t*omega))/(np.sin(omega)) * x_1
     yt = (np.sin((1-t)*omega))/(np.sin(omega)) * y_0 + (np.sin(t*omega))/(np.sin(omega)) * y_1
     zt = (np.sin((1-t)*omega))/(np.sin(omega)) * z_0 + (np.sin(t*omega))/(np.sin(omega)) * z_1
-
+    
+    if x_0 < x_1:
+        np.clip(xt, x_0, x_1)
+    else:
+        np.clip(xt, x_1, x_0)
+    if y_0 < y_1:
+        np.clip(yt, y_0, y_1)
+    else:
+        np.clip(yt, y_1, y_0)
+    if z_0 < z_1:
+        np.clip(zt, z_0, z_1)
+    else:
+        np.clip(zt, z_1, z_0)
+        
     return np.array([xt, yt, zt])
 
 # =====================================================================
