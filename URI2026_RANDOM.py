@@ -103,6 +103,8 @@ ALPHA_ST = 10.0
 rand_theta = (np.random.rand(3)-(0.5*np.ones(3)))*20 * np.pi / 180 
 rand_phi   = (np.random.rand(3)-(0.5*np.ones(3)))*20 * np.pi / 180 
 
+print(rand_theta * 180/np.pi)
+print(rand_phi * 180/np.pi)
 
 # Paper unit-vector SMC (Eq. 29-35): coupled law on integral surface
 #   s = e_dot + 2*alpha*e + alpha^2*Integral(e)   [s0 offset so s(0)=0]
@@ -469,7 +471,7 @@ def SLERP(t):
 # =====================================================================
 # Startup: home / zero
 # =====================================================================
-mode_names = {1: "Regulation", 2: "Circle", 3: "FigureEight"}
+mode_names = {1: "Regulation", 2: "Circle", 3: "FigureEight", 4: "Random"}
 ctrl_names = {1: "PID", 2: "RBF-PIDNet", 3: "SuperTwisting", 4: "UnitVectorSMC"}
 
 home_routine(ser)
