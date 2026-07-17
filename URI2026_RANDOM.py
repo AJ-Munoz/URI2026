@@ -102,11 +102,11 @@ ALPHA_ST = 10.0
 # Random
 # rand_theta = (np.random.rand(3)-(0.5*np.ones(3)))*20 * np.pi / 180 
 # rand_phi   = (np.random.rand(3)-(0.5*np.ones(3)))*20 * np.pi / 180 
-rand_theta = np.pi / 180.0 * np.array([5.0, 1.0, -5.0]) 
-rand_phi   = np.pi / 180.0 * np.array([1.0, 5.0, -5.0])
+rand_w0 = np.pi / 180.0 * np.array([5.0, 1.0, -5.0]) #-10 -> 10
+rand_w1  = np.pi / 180.0 * np.array([90, -90, 45]) # -180 -> 180
 
-print(rand_theta * 180/np.pi)
-print(rand_phi * 180/np.pi)
+print(rand_w0 * 180/np.pi)
+print(rand_w1 * 180/np.pi)
 
 
 # Paper unit-vector SMC (Eq. 29-35): coupled law on integral surface
@@ -445,35 +445,21 @@ def reference_lambda(t):
         return SLERP(t)
 
 def SLERP(t):
-    
-    if t < 10/3:
-        phi_0, phi_1 = 0, rand_phi[0]
-        theta_0, theta_1 = 0, rand_theta[0]
-    elif t < 2*10/3:
-        phi_0, phi_1 = rand_phi[0], rand_phi[1]
-        theta_0, theta_1 = rand_theta[0], rand_theta[1]
-    else:
-        phi_0, phi_1 = rand_phi[1], rand_phi[2]
-        theta_0, theta_1 = rand_theta[1], rand_theta[2]
-        
-    x_0 = H2*np.sin(phi_0)*np.cos(theta_0)
-    y_0 = H2*np.sin(phi_0)*np.sin(theta_0)
-    z_0 = H2*np.cos(phi_0)
-    x_1 = H2*np.sin(phi_1)*np.cos(theta_1)
-    y_1 = H2*np.sin(phi_1)*np.sin(theta_1)
-    z_1 = H2*np.cos(phi_1)
-
-    omega = np.arccos(np.cos(phi_0) * np.cos(phi_1) + np.sin(phi_0) * np.sin(phi_1) * np.cos(theta_1 - theta_0))
-    
-    xt = (np.sin((1-t)*omega))/(np.sin(omega)) * x_0 + (np.sin(t*omega))/(np.sin(omega)) * x_1
-    yt = (np.sin((1-t)*omega))/(np.sin(omega)) * y_0 + (np.sin(t*omega))/(np.sin(omega)) * y_1
-    zt = (np.sin((1-t)*omega))/(np.sin(omega)) * z_0 + (np.sin(t*omega))/(np.sin(omega)) * z_1
-    
-    xt = np.clip(xt, x_0, x_1) if x_0 < x_1 else np.clip(xt, x_1, x_0)
-    yt = np.clip(yt, y_0, y_1) if y_0 < y_1 else np.clip(yt, y_1, y_0)
-    zt = np.clip(zt, z_0, z_1) if z_0 < z_1 else np.clip(zt, z_1, z_0)
-
-    return np.array([xt, yt, zt])
+	if t < DURATION/3:
+		W0 = rand_w0[0]
+		W1 = rand_w1[0]
+	elif t < 2*DURATION/3:
+		W0 = rand_w0[1]
+		W1 = rand_w1[1]
+	else:
+		W0 = rand_w0[2]
+		W1 = rand_w1[2]
+	
+	return np.array([
+            np.sin(W0) * np.cos(W1),
+            np.sin(W0) * np.sin(W1),
+            np.cos(W0),
+        ])
 # =====================================================================
 # Startup: home / zero
 # =====================================================================
