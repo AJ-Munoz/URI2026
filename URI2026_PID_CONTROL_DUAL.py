@@ -82,8 +82,8 @@ ALPHA_PN  = 10.0
 vartheta = 1/700
 BETA_PN   = np.zeros(6)
 PHI_PN    = np.zeros((6,2))
-gamma_0   = 0.4
-GAMMA_PN  = np.array([0.05, 1.0, 0.2, 0.07, 0.2, 0.07])
+gamma_0   = 40 
+GAMMA_PN  = np.array([1e-5, 0.5, 0.2, 0.07, 0.2, 0.07])
 sigma = 0.2 * 4115 # Larger value gives troubles
 center0 = np.array([ 0.0, 0.0]) * 4115
 center1 = np.array([ 0.2, 0.2]) * 4115
@@ -533,7 +533,7 @@ try:
             break
 
         # --- error + Levant differentiator ---
-        e = (x - xd) * (np.tanh(.5*t)**2) # 1*t
+        e = (x - xd) * (np.tanh(0.5*t)**2) # 1*t
         ez = e - z1
         dz1 = 1.5 * np.sqrt(Ld) * np.sqrt(np.abs(ez) + 1e-6) * np.sign(ez) + z2
         dz2 = 1.1 * Ld * np.sign(ez)
@@ -593,7 +593,9 @@ try:
         ISC += dt * u_sat ** 2
         f.write(f"{t:.4f}\t{e[0]:.2f}\t{e[1]:.2f}\t{x[0]:.1f}\t{x[1]:.1f}\t"
                 f"{xd[0]:.1f}\t{xd[1]:.1f}\t{u_sat[0]:.4f}\t{u_sat[1]:.4f}\t"
-                f"{eta_est[0]:.5f}\t{eta_est[1]:.5f}\t{tilt_meas:.3f}\t{dt:.6f}\n")
+                f"{eta_est[0]:.5f}\t{eta_est[1]:.5f}\t{tilt_meas:.3f}\t{dt:.6f}\t"
+                f"{BETA_PN[0]:.4f}\t{BETA_PN[1]:.4f}\t{BETA_PN[2]:.4f}\t"
+                f"{BETA_PN[3]:.4f}\t{BETA_PN[4]:.4f}\t{BETA_PN[5]:.4f}\n")
 
     if not aborted:
         print(" Done.")
