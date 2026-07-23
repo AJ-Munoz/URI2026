@@ -29,8 +29,8 @@ EXTEND_DIR = [1, 1]    # [X, Y] BTS input that EXTENDS: 1=RIGHT, 0=LEFT
 ENC_SIGN   = [+1, +1]  # [X, Y] +1 if extending raises counts
 
 # === Gamepad mapping ===
-AXIS_X = 4             # right-stick vertical   -> X actuator
-AXIS_Y = 3             # right-stick horizontal -> Y actuator
+AXIS_X = 1              # right-stick vertical   -> X actuator
+AXIS_Y = 0             # right-stick horizontal -> Y actuator
 SIGN_X = -1            # X is inverted (up should extend)
 SIGN_Y = +1
 MAX_PWM = 255          # full-stick PWM (lower for gentler jogging)
