@@ -82,8 +82,8 @@ ALPHA_PN  = 10.0
 vartheta = 1/700
 BETA_PN   = np.zeros(6)
 PHI_PN    = np.zeros((6,2))
-gamma_0   = 40 # 30 is lowest safe
-GAMMA_PN  = np.array([1e-5, 0.5, 0.2, 0.07, 0.2, 0.07])
+gamma_0   = 40 / vartheta # 30 is lowest safe
+GAMMA_PN  = np.array([1e-5, 0.5, 0.2, 0.07, 0.2, 0.07]) * vartheta
 sigma = 0.2 * 4115 # Larger value gives troubles
 center0 = np.array([ 0.0, 0.0]) * 4115
 center1 = np.array([ 0.2, 0.2]) * 4115
@@ -571,7 +571,7 @@ try:
 				[phi41, phi42]
             ]) @ sv
             adap_fnc = np.tanh(vartheta * s)
-            BETA_PN += dt * GAMMA_PN * ( PHI_PN @ adap_fnc) \
+            BETA_PN += dt * GAMMA_PN * ( PHI_PN @ s) \
             - dt * gamma_0 * GAMMA_PN * BETA_PN
             u = - Kd_PN * adap_fnc - PHI_PN.T @ BETA_PN
         elif ctr_sel == 3:                                 # Super twisting
