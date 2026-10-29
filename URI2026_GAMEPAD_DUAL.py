@@ -35,8 +35,8 @@ SIGN_X = -1            # X is inverted (up should extend)
 SIGN_Y = +1
 MAX_PWM = 255          # full-stick PWM (lower for gentler jogging)
 FLOOR   = 15           # ignore tiny stick noise below this PWM
-BTN_A   = 0            # homing
-BTN_B   = 1            # quit
+BTN_A   = 9            # homing
+BTN_B   = 10            # quit
 LOOP_HZ = 60
 
 # === Homing (PLATE OFF) ===
@@ -71,8 +71,8 @@ def stop(ser):
 
 def home(ser):
     print("\n  [A] HOMING.")
-    if input("  TOP PLATE DISCONNECTED? [y/N]: ").strip().lower() != 'y':
-        print("  aborted."); return
+    """if input("  TOP PLATE DISCONNECTED? [y/N]: ").strip().lower() != 'y':
+        print("  aborted."); return"""
     print("  retracting to stops...", flush=True)
     dxr, dyr = 1-EXTEND_DIR[0], 1-EXTEND_DIR[1]
     last=[None,None]; t=[time.time(),time.time()]; done=[False,False]
@@ -121,9 +121,9 @@ def main():
             t0 = time.perf_counter()
             pygame.event.pump()
 
+            """if js.get_button(BTN_A):
+                break"""
             if js.get_button(BTN_B):
-                break
-            if js.get_button(BTN_A):
                 stop(ser); home(ser)
                 # resume-safe: wait until stick released so it doesn't lurch
                 while abs(js.get_axis(AXIS_X)) > 0.2 or abs(js.get_axis(AXIS_Y)) > 0.2:
